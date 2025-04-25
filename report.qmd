@@ -1,0 +1,607 @@
+---
+title: "Water, Health, and Humanity: A Global Call for Improved Access"
+subtitle: "UNICEF Assignment: Quarto Report – 2025"
+author: "Pushyami Goli (DCU ID – A00011072)"
+date: "last-modified"
+format:
+  html:
+    embed-resources: true
+    code-fold: true
+    toc: true
+    number-sections: true
+    theme: cosmo
+execute:
+  echo: true
+  warning: false
+  error: false
+---
+
+**📘 Report Summary**
+
+This report investigates global disparities in access to improved drinking water, using UNICEF datasets. Through eight Python-generated visualisations, we expose inequalities, explore underlying correlations with health and demographics, and evaluate progress over time. Rendered with Quarto and published via GitHub, this report aims to inspire advocacy and action.
+
+***✨ Key Highlights***
+
+Access to improved drinking water is still severely unequal across nations.
+War-torn and low-income countries remain the most vulnerable.
+Global average water access is increasing, but not fast enough.
+Military spending inversely correlates with life expectancy.
+Fossil fuel dependence relates to both population stress and lower birth health outcomes.
+
+## 🚿 The Critical Lifeline: Why Improved Water Access Matters
+
+Access to clean and safe drinking water is not just a human right—it is the bedrock of public health, child development, gender equality, and climate resilience. Yet, across many regions of the world, this essential resource remains a privilege rather than a universal standard. To fully grasp the scale and urgency of the global water crisis, I employ a sequence of visual narratives that reveal its far-reaching impacts across geography, governance, health, and societal development.
+
+## 📊 Part 1: Global Overview — A Map of Inequality
+
+This section opens the report with a choropleth world map, setting the stage for a sobering reality: access to improved drinking water is unevenly distributed across the globe, often mirroring geopolitical, historical, and socio-economic divides. 
+
+```{python}
+#| cellView: form
+# @title Library
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import plotly.express as px
+df_final_merged = pd.read_csv("./df_final_merged.csv")
+```
+
+
+###  🗺 Choropleth World Map in 2007 
+
+This map paints a striking image of global inequalities. Nations with lower access rates—particularly across sub-Saharan Africa and parts of South Asia—stand out starkly against better-performing regions. Geography, political stability, colonial histories, and investment levels converge here to create a geography of disadvantage. Where you are born still largely determines whether you will drink clean water.
+
+```{python}
+#| colab: {base_uri: https://localhost:8080/, height: 617}
+# @title 🗺 Choropleth World Map in 2007
+
+indicator_short = "Improved drinking water sources"
+year = 2007
+
+df = df_final_merged.copy()
+df['year']  = pd.to_numeric(df['year'], errors='coerce')
+df['value'] = pd.to_numeric(df['value'], errors='coerce')
+
+mask = df['indicator_name'].str.contains(indicator_short, case=False, na=False)
+df_map = (
+    df[mask & (df['year'] == year)]
+    .loc[:, ['country', 'value']]
+    .dropna(subset=['value'])
+)
+
+fig = px.choropleth(
+    df_map,
+    locations="country",
+    locationmode="country names",
+    color="value",
+    hover_name="country",
+    color_continuous_scale="Blues",
+    range_color=(df_map['value'].min(), df_map['value'].max()),
+    projection="natural earth",
+    title=f"{indicator_short} — {year}",
+    labels={'value': f"{indicator_short} (%)"},
+    template="plotly_white",
+    width=1000,
+    height=600
+)
+fig.update_geos(
+    showcountries=True, showframe=False,
+    landcolor="lightgray", lakecolor="white",
+    coastlinecolor="gray"
+)
+fig.update_layout(
+    title=dict(
+        text=f"{indicator_short} — {year}",
+        x=0.5, xanchor='center',
+        font=dict(size=24, family='Arial', color='#333')
+    ),
+    margin=dict(l=0, r=0, t=80, b=0),
+   coloraxis_colorbar=dict(
+        title=dict(               
+            text=f"{indicator_short} (%)",
+            font=dict(size=14)
+        ),
+        tickformat=".1f",
+        len=0.75,
+        thickness=15,
+        outlinewidth=0,
+        tickfont=dict(size=12)
+    ),
+    font=dict(family='Arial', size=12, color='#444')
+)
+fig.show()
+```
+
+## 📉 Part 2: Who’s Being Left Behind?
+
+Numbers can flatten reality but this section amplifies the voices behind the stats. Here, I spotlight those who are not just lagging, but often completely excluded from the progress narrative. This section is not about shaming countries, it’s about calling attention to the urgent need for targeted support, smart aid, and accountability in the global push for universal water access.
+
+
+### 📌 Bottom 7 Countries: Improved Water Access in 2005 
+
+This horizontal bar plot pulls the curtain back even further, zooming in on the seven countries with the lowest access levels. It forces a reckoning: these aren't just "low numbers," but millions of children, families, and communities living without a basic human necessity. These cases demand urgent humanitarian and infrastructural intervention.
+
+```{python}
+#| colab: {base_uri: https://localhost:8080/, height: 517}
+#| cellView: form
+# @title 📌 Bottom 7 Countries: Improved Water Access in 2005
+indicator = "Proportion of population using improved drinking water sources"
+year = 2005
+
+
+df = df_final_merged.copy()
+df['year']  = pd.to_numeric(df['year'], errors='coerce')
+df['value'] = pd.to_numeric(df['value'], errors='coerce')
+
+df_year = (
+    df.query("indicator_name == @indicator and year == @year")
+      .dropna(subset=['value'])
+)
+
+df_bottom7 = (
+    df_year
+    .nsmallest(7, 'value')
+    .sort_values('value')
+)
+
+fig = px.bar(
+    df_bottom7,
+    x='value',
+    y='country',
+    orientation='h',
+    text='value',
+    labels={
+        'value': f'{indicator} (%)',
+        'country': 'Country'
+    },
+    title=f'Bottom 7 Countries: Improved Water Access in {year}',
+    template='plotly_white',
+    width=800,
+    height=500,
+    color='value',
+    color_continuous_scale='Viridis'
+)
+
+fig.update_traces(
+    marker=dict(line=dict(color='white', width=1)),
+    texttemplate='%{text:.1f}%',
+    textposition='outside'
+)
+fig.update_layout(
+    xaxis=dict(gridcolor='lightgrey', title_standoff=15),
+    yaxis=dict(autorange='reversed', title_standoff=15),
+    coloraxis_showscale=False,
+    margin=dict(l=140, r=40, t=100, b=60),
+    title_font=dict(size=20, family='Arial'),
+    font=dict(size=12, family='Arial')
+)
+
+fig.show()
+
+```
+
+### 🔁 Change in Improved-Water Access, 2000 vs 2015 
+
+Through the dumbbell plot, I explore longitudinal dynamics. Are the world's most vulnerable countries catching up or are they being left behind by global progress? For some, modest improvements are visible; for others, political unrest and economic stagnation have entrenched suffering. Progress is neither linear nor guaranteed.
+
+```{python}
+#| colab: {base_uri: https://localhost:8080/, height: 467}
+#| cellView: form
+# @title 🔁 Change in Improved-Water Access, 2000 vs 2015
+import plotly.graph_objects as go
+
+df = df_final_merged.copy()
+df["year"]  = pd.to_numeric(df["year"], errors="coerce")
+df["value"] = pd.to_numeric(df["value"], errors="coerce")
+
+indicator = "Proportion of population using improved drinking water sources"
+years = sorted(df.query("indicator_name == @indicator")["year"].dropna().unique())
+first_year, last_year = years[0], years[-1]
+
+df_first = (
+    df.query("indicator_name == @indicator and year == @first_year")
+      [["country","value"]]
+      .rename(columns={"value": "val_first"})
+)
+df_last = (
+    df.query("indicator_name == @indicator and year == @last_year")
+      [["country","value"]]
+      .rename(columns={"value": "val_last"})
+)
+df_dbl = pd.merge(df_first, df_last, on="country", how="inner").dropna()
+worst5 = df_dbl.nsmallest(5, "val_last").sort_values("val_last")
+
+fig = go.Figure()
+
+for _, row in worst5.iterrows():
+    fig.add_trace(go.Scatter(
+        x=[row["val_first"], row["val_last"]],
+        y=[row["country"], row["country"]],
+        mode="lines",
+        line=dict(color="#999999", width=2),
+        hoverinfo="skip",
+        showlegend=False
+    ))
+
+fig.add_trace(go.Scatter(
+    x=worst5["val_first"],
+    y=worst5["country"],
+    mode="markers",
+    name=str(first_year),
+    marker=dict(color="#F58518", size=12, line=dict(color="white", width=1)),
+    hovertemplate=f"{first_year}<br>%{{y}}: %{{x:.1f}}%<extra></extra>"
+))
+
+fig.add_trace(go.Scatter(
+    x=worst5["val_last"],
+    y=worst5["country"],
+    mode="markers",
+    name=str(last_year),
+    marker=dict(color="#4C78A8", size=12, line=dict(color="white", width=1)),
+    hovertemplate=f"{last_year}<br>%{{y}}: %{{x:.1f}}%<extra></extra>"
+))
+
+fig.update_layout(
+    title=dict(text=f"Change in Improved-Water Access, {first_year} vs {last_year}", x=0.5, xanchor="center"),
+    xaxis_title="Improved Water Access (%)",
+    yaxis_title="Country",
+    template="plotly_white",
+    width=850,
+    height=450,
+    legend_title_text="Year",
+    margin=dict(l=150, r=50, t=80, b=50)
+)
+
+fig.show()
+```
+
+## ⏳ Part 3: The Bigger Picture — A Global Journey
+
+
+When zoomed out, a more complex story unfolds. A single national story can include both tragedy and triumph depending on the year, region, or policy in play. This section helps us step back, analyze trends, and ask: What kind of global water future are we building? One that lifts all boats or just some?
+
+### 📈 Global Average Improved Water Access (2000–2022) 
+
+A broader lens shows steady global improvement in access to improved water sources. Yet, the incremental pace reminds us: steady is not fast enough. At current rates, many countries will miss the 2030 Sustainable Development Goal (SDG 6) targets for clean water access. Time is running out for millions.
+
+```{python}
+#| colab: {base_uri: https://localhost:8080/, height: 517}
+#| cellView: form
+# @title 📈 Global Average Improved Water Access (2000–2022)
+df = df_final_merged.copy()
+df['year'] = pd.to_numeric(df['year'], errors='coerce')
+df['value'] = pd.to_numeric(df['value'], errors='coerce')
+
+indicator = "Proportion of population using improved drinking water sources"
+df_ts = (
+    df[df['indicator_name'] == indicator]
+      .dropna(subset=['value', 'year'])
+      .groupby('year', as_index=False)['value']
+      .mean()
+      .rename(columns={'value': 'avg_improved_water_pct'})
+)
+
+
+fig = px.line(
+    df_ts,
+    x='year',
+    y='avg_improved_water_pct',
+    markers=True,
+    title='Global Average Improved Water Access (2000–2022)',
+    labels={
+        'year': 'Year',
+        'avg_improved_water_pct': 'Average % Using Improved Water'
+    },
+    template='plotly_white',
+    width=800,
+    height=500
+)
+
+fig.update_traces(
+    line=dict(color='#2c7fb8', width=2),
+    marker=dict(size=8, color='#2c7e10')
+)
+fig.update_layout(
+    title_font=dict(size=20, family='Arial'),
+    font=dict(size=12, family='Arial'),
+    xaxis=dict(tickmode='linear', dtick=2, gridcolor='lightgrey'),
+    yaxis=dict(gridcolor='lightgrey'),
+    margin=dict(l=80, r=40, t=100, b=60)
+)
+
+fig.show()
+```
+### 🌍 Distribution of Improved-Water Access Over Two Decades 
+
+This visualisation highlights a key paradox: while global averages rise, the internal spread (inequality) between countries has widened. Fast-developing nations pull the average up, but laggards risk being left permanently behind. It reveals that global progress masks deepening internal disparities.
+
+```{python}
+#| colab: {base_uri: https://localhost:8080/, height: 617}
+#| cellView: form
+# @title 🌍 Distribution of Improved-Water Access Over Two Decades
+indicator = "Proportion of population using improved drinking water sources"
+df = df_final_merged.copy()
+df["year"]  = pd.to_numeric(df["year"],  errors="coerce")
+df["value"] = pd.to_numeric(df["value"], errors="coerce")
+
+year_end   = int(df["year"].max())
+year_start = year_end - 19
+snapshot   = list(range(year_start, year_end + 1, 5))
+
+df_violin = (
+    df
+    .query("indicator_name == @indicator and year in @snapshot")
+    .assign(year=lambda d: d["year"].astype(str))
+)
+
+
+df_means = (
+    df_violin
+    .groupby("year", as_index=False)["value"]
+    .mean()
+)
+
+
+fig = px.violin(
+    df_violin,
+    x="year",
+    y="value",
+    hover_data=["country"],
+    labels={"value": "Improved Water Access (%)", "year": "Year"},
+    title="Distribution of Improved-Water Access Over Two Decades",
+    template="plotly_white",
+    width=900,
+    height=600,
+    color_discrete_sequence=["#4C78A8"]
+)
+
+fig.update_traces(
+    meanline_visible=True,
+    box_visible=False,
+    points=False,
+    opacity=0.6,
+    marker=dict(color="#4C78A8")
+)
+
+fig.add_trace(
+    go.Scatter(
+        x=df_means["year"],
+        y=df_means["value"],
+        mode="markers+lines",
+        name="Global Mean",
+        marker=dict(color="#F58518", size=8),
+        line=dict(color="#F58518", dash="dash")
+    )
+)
+
+fig.update_layout(
+    title=dict(x=0.5, xanchor="center", font_size=18),
+    xaxis=dict(title_font_size=13, tickfont_size=11, gridcolor="lightgrey"),
+    yaxis=dict(title_font_size=13, tickfont_size=11, gridcolor="lightgrey"),
+    legend=dict(title="", orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+    margin=dict(l=80, r=40, t=100, b=60)
+)
+
+fig.show()
+```
+### 📉 Trends in Improved-Water Access for 3 Countries 
+
+A zoom into three of the countries reveals different narratives—one shows recovery driven by policy reform, another stagnates despite international aid, and a third declines due to conflict. These country-specific trajectories prove that solutions must be local, not one-size-fits-all.
+
+```{python}
+#| cellView: form
+#| colab: {base_uri: https://localhost:8080/, height: 417}
+# @title 📉 Trends in Improved-Water Access for 3 Countries
+
+from plotly.subplots import make_subplots
+
+
+df = df_final_merged.copy()
+df["year"]  = pd.to_numeric(df["year"],  errors="coerce")
+df["value"] = pd.to_numeric(df["value"], errors="coerce")
+
+indicator = "Proportion of population using improved drinking water sources"
+years_avail = sorted(df.query("indicator_name == @indicator")["year"].dropna().unique())
+latest      = years_avail[-1]
+
+df_latest = df.query("indicator_name == @indicator and year == @latest")
+bottom3   = (
+    df_latest
+    .nsmallest(3, "value")["country"]
+    .dropna().unique()
+)
+
+df_ts = (
+    df.query("indicator_name == @indicator")
+      .loc[lambda d: d["country"].isin(bottom3), ["country","year","value"]]
+      .dropna()
+)
+
+miny, maxy = int(df_ts["year"].min()), int(df_ts["year"].max())
+breaks = list(range(miny, maxy+1, 5))
+
+
+fig = make_subplots(
+    rows=1, cols=len(bottom3),
+    shared_yaxes=True,
+    subplot_titles=bottom3,
+    horizontal_spacing=0.05
+)
+
+for i, country in enumerate(bottom3):
+    data = df_ts[df_ts["country"] == country]
+    fig.add_trace(
+        go.Scatter(
+            x=data["year"],
+            y=data["value"],
+            mode="lines+markers",
+            line=dict(color="#2c7bb6", width=2),
+            marker=dict(color="#d7191c", size=8),
+            hovertemplate="Year: %{x}<br>Access: %{y:.1f}%<extra></extra>"
+        ),
+        row=1, col=i+1
+    )
+
+    fig.update_xaxes(
+        title_text="Year",
+        tickmode="array",
+        tickvals=breaks,
+        tickangle=45,
+        row=1, col=i+1
+    )
+
+
+fig.update_yaxes(title_text="Improved Water Access (%)", row=1, col=1)
+
+fig.update_layout(
+    title=dict(
+        text=f"Trends in Improved-Water Access for 3 Countries ({latest})",
+        x=0.5, xanchor="center"
+    ),
+    template="plotly_white",
+    width=900,
+    height=400,
+    margin=dict(l=80, r=40, t=80, b=60)
+)
+
+fig.show()
+```
+
+## 🧬 Part 4: Water and Its Ripple Effects on Health and Demographics
+
+Water doesn’t exist in a vacuum. Its availability or lack thereof ripples across sectors: health, economics, population, and the environment. In this section, we shift from access alone to interdependencies highlighting how water connects to broader societal outcomes. This final section argues that water access must be seen not just as a standalone issue, but as foundational to everything else: public health, climate resilience, population management, and national stability. It is the lynchpin of human development.
+
+### 💧🆚💣 Life Expectancy vs Military Expenditure (% of GDP) 
+
+This scatterplot uncovers a tragic contradiction: countries investing heavily in military budgets often underperform on life expectancy metrics. Water, healthcare, and education infrastructure are compromised when arms race priorities overshadow basic human needs. Realigning government expenditures toward life, not warfare, is critical.
+
+```{python}
+#| colab: {base_uri: https://localhost:8080/, height: 617}
+#| cellView: form
+# @title 💧🆚💣 Life Expectancy vs Military Expenditure (% of GDP)
+#This scatterplot uncovers a tragic contradiction: countries investing heavily in military budgets often underperform on life expectancy metrics. Water, healthcare, and education infrastructure are compromised when arms race priorities overshadow basic human needs. Realigning government expenditures toward life, not warfare, is critical.
+
+df = df_final_merged.copy()
+df['military_expenditure_pct_gdp'] = pd.to_numeric(df['military_expenditure_pct_gdp'], errors='coerce')
+df['life_expectancy_years']        = pd.to_numeric(df['life_expectancy_years'],    errors='coerce')
+df_plot = df.dropna(subset=['military_expenditure_pct_gdp', 'life_expectancy_years'])
+
+fig = px.scatter(
+    df_plot,
+    x='military_expenditure_pct_gdp',
+    y='life_expectancy_years',
+    color='country',
+    hover_name='country',
+    trendline='ols',
+    trendline_scope='overall',
+    labels={
+        'military_expenditure_pct_gdp': 'Military Expenditure (% GDP)',
+        'life_expectancy_years': 'Life Expectancy (Years)'
+    },
+    title='Life Expectancy vs Military Expenditure (% of GDP)',
+    width=900,
+    height=600,
+    template='plotly_white',
+    color_discrete_sequence=px.colors.qualitative.Dark24
+)
+
+
+fig.update_traces(
+    selector=dict(mode='markers'),
+    marker=dict(size=8, opacity=0.8, line=dict(width=1, color='white'))
+)
+fig.update_traces(
+    selector=dict(mode='lines'),
+    line=dict(color='#de2d26', width=2, dash='dash')
+)
+
+fig.update_layout(
+    title_font=dict(size=22, family='Helvetica', color='#333'),
+    font=dict(family='Helvetica', size=12, color='#444'),
+    legend_title_text='Country',
+    legend=dict(
+        itemsizing='constant',
+        bordercolor='lightgrey',
+        borderwidth=1,
+        bgcolor='rgba(255,255,255,0.8)',
+        x=1.02, y=1
+    ),
+    xaxis=dict(gridcolor='lightgrey', title_standoff=15, tickformat='.1f'),
+    yaxis=dict(gridcolor='lightgrey', title_standoff=15),
+    margin=dict(l=80, r=200, t=100, b=60)
+)
+
+fig.show()
+```
+### 👶🔥 Birth Rate vs Fossil-Fuel Dependency (Bubble = Population) 
+
+This bubble chart interlinks environmental degradation, demographic pressures, and water scarcity. Countries with heavy fossil fuel dependency and high birth rates often face compounded development challenges—including sustainable water access. Climate change mitigation, green energy transitions, and water security must be tackled together.
+
+```{python}
+#| colab: {base_uri: https://localhost:8080/, height: 617}
+# @title 👶🔥 Birth Rate vs Fossil-Fuel Dependency (Bubble = Population)
+df = df_final_merged.copy()
+for col in ['population_total', 'fossil_fuel_energy_pct', 'birth_rate_per_1000']:
+    df[col] = pd.to_numeric(df[col], errors='coerce')
+
+df_plot = df.dropna(subset=['population_total', 'fossil_fuel_energy_pct', 'birth_rate_per_1000'])
+
+fig = px.scatter(
+    df_plot,
+    x='fossil_fuel_energy_pct',
+    y='birth_rate_per_1000',
+    size='population_total',
+    color='country',
+    hover_name='country',
+    size_max=60,
+    labels={
+        'fossil_fuel_energy_pct': 'Fossil Fuel Energy (% of Total)',
+        'birth_rate_per_1000': 'Birth Rate (per 1,000)',
+        'population_total': 'Population'
+    },
+    title='Birth Rate vs Fossil-Fuel Dependency (Bubble = Population)',
+    template='plotly_white',
+    width=900,
+    height=600
+)
+
+fig.update_traces(
+    marker=dict(opacity=0.7, line=dict(width=1, color='white')),
+    selector=dict(mode='markers')
+)
+fig.update_layout(
+    title_font=dict(size=20, family='Arial'),
+    font=dict(size=12),
+    legend_title_text='Country',
+    xaxis=dict(gridcolor='lightgrey'),
+    yaxis=dict(gridcolor='lightgrey'),
+    margin=dict(l=80, r=200, t=100, b=60)
+)
+
+fig.show()
+```
+
+## 📢 Why This Matters
+
+Each visualisation contributes a layer of understanding: Geography defines risk. Governance defines resilience. Policy defines progress. The global water crisis is not only a humanitarian emergency it is a governance, development, and justice challenge. 
+
+This story calls for urgent, targeted, and systemic change: for investments to flow into sustainable water infrastructures, for energy reforms to lessen climate burdens, and for global solidarity to ensure that no one is left behind simply because of where they are born.
+
+## 🌐 Conclusion: Bridging the Gap With Data and Policy
+
+Water is more than a resource it is life, dignity, and opportunity. This report has visualised the global struggle for improved drinking water access not simply as a collection of statistics, but as a series of human stories told through data. The disparities we’ve seen are not accidental they are products of unequal investment, historical injustice, and global inaction. 
+
+The visualisations revealed that the determinants of water access are not merely environmental—they are political, economic, and social. They lie in how governments allocate resources, how global institutions design aid frameworks, and how the international community prioritises equity. 
+
+The call is now clear: Reprioritise funding: shift focus from arms to infrastructure, from fossil fuels to sustainability. Reimagine partnerships: empower local leaders and grassroots organisations to co-design solutions. Reinforce data-driven policy: make equity, not averages, the metric of success. Clean water is not only a privilege, it is a promise the global community must keep.
+
+## ✅ What You Can Do Next
+
+* Explore the interactive visualisations to understand where action is needed most.
+* Share this report with educators, policymakers, and activists to spread awareness.
+* Support global and local initiatives that advance water equity, including UNICEF’s WASH (Water, Sanitation, and Hygiene) programs.
+* Speak up: advocate for SDG 6, climate resilience, and responsible governance in your community and beyond.
+
+Let us turn insight into action, and data into dignity for every child, every family, everywhere.
+
